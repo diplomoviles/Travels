@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Travels</string>
+
+
+    <string name="facebook_app_id" templateMergeStrategy="preserved" translatable="false">801379851739437</string>
+    <string name="fb_login_protocol_scheme" templateMergeStrategy="preserved" translatable="false">fb801379851739437</string>
+    <string name="facebook_client_token" templateMergeStrategy="preserved" translatable="false">7c5543c2e4396e710a577221c2019f1d</string>
+
+
+</resources>
