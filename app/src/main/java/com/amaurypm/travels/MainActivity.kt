@@ -3,6 +3,7 @@ package com.amaurypm.travels
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import com.amaurypm.travels.databinding.ActivityMainBinding
@@ -17,6 +18,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuth.AuthStateListener
 import com.google.firebase.auth.FirebaseUser
 
+import com.facebook.AccessTokenTracker
+import com.facebook.GraphRequest
+import org.json.JSONException
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -27,8 +32,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var authStateListener: AuthStateListener
 
-    //Agregué un usuario y además el permiso de email en la pag de desarrolladores de meta.
-
+    private lateinit var accessTokenTracker: AccessTokenTracker
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,30 +42,54 @@ class MainActivity : AppCompatActivity() {
         callbackManager = CallbackManager.Factory.create()
         firebaseAuth = FirebaseAuth.getInstance()
 
-        binding.loginButton.setPermissions("email", "public_profile")
+        binding.loginButton.setPermissions("email", "public_profile", "user_friends")
 
-        binding.loginButton.registerCallback(callbackManager, object: FacebookCallback<LoginResult>{
-            override fun onCancel() {
-                Toast.makeText(this@MainActivity, "Error al ingresar. Por favor instala Facebook e inicia sesión desde ahí", Toast.LENGTH_SHORT).show()
-            }
+        binding.loginButton.registerCallback(
+            callbackManager,
+            object : FacebookCallback<LoginResult> {
+                override fun onCancel() {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Error al ingresar. Por favor instala Facebook e inicia sesión desde ahí",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
 
-            override fun onError(error: FacebookException) {
-                Toast.makeText(this@MainActivity, "Error al ingresar. Por favor instala Facebook e inicia sesión desde ahí", Toast.LENGTH_SHORT).show()
-            }
+                override fun onError(error: FacebookException) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Error al ingresar. Por favor instala Facebook e inicia sesión desde ahí",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
 
-            override fun onSuccess(result: LoginResult) {
-                manejaTokenAcceso(result.accessToken)
-            }
-        })
+                override fun onSuccess(result: LoginResult) {
+                    manejaTokenAcceso(result.accessToken)
+                }
+            })
 
-        authStateListener = AuthStateListener {firebaseAuth ->
+        authStateListener = AuthStateListener { firebaseAuth ->
             var user = firebaseAuth.currentUser
-            if(user!=null){
+            if (user != null) {
                 actualizaUI(user)
-            }else{
+            } else {
                 actualizaUI(null)
             }
         }
+
+        accessTokenTracker = object: AccessTokenTracker(){
+            override fun onCurrentAccessTokenChanged(
+                oldAccessToken: AccessToken?,
+                currentAccessToken: AccessToken?
+            ) {
+                if(currentAccessToken == null)
+                    firebaseAuth.signOut()
+            }
+
+        }
+
+
+
     }
 
     private fun manejaTokenAcceso(accessToken: AccessToken) {
@@ -85,21 +113,21 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        if(authStateListener!=null)
+        if (authStateListener != null)
             firebaseAuth.removeAuthStateListener(authStateListener)
     }
 
     private fun actualizaUI(user: FirebaseUser?) {
-        if(user!=null){
+        if (user != null) {
             binding.tvNombrePerfil.text = user.displayName
-            if(user.photoUrl!=null){
+            if (user.photoUrl != null) {
                 var photoUrl = user.photoUrl.toString()
-                photoUrl = "$photoUrl?access_token=${AccessToken.getCurrentAccessToken()?.token}&type=large"
+                //photoUrl = "$photoUrl?access_token=${AccessToken.getCurrentAccessToken()?.token}&type=large"
+                photoUrl = "$photoUrl?type=large"
                 binding.ivTravel.visibility = View.INVISIBLE
-
                 Glide.with(this).load(photoUrl).into(binding.ivImagenPerfil)
             }
-        }else{
+        } else {
             binding.tvNombrePerfil.text = ""
             binding.ivImagenPerfil.setImageResource(0)
             binding.ivTravel.visibility = View.VISIBLE
@@ -111,3 +139,4 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
     }
 }
+
